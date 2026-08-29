@@ -1,5 +1,5 @@
 {
-  "name": "expo-go-villa-sample",
+  "name": "dat-expense",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -63,6 +63,7 @@
     "@types/lodash.memoize": "^4.1.9",
     "@types/react": "~19.1.10",
     "babel-plugin-module-resolver": "^5.0.2",
+    "babel-preset-expo": "~54.0.12",
     "eslint": "^9.25.1",
     "eslint-config-expo": "~10.0.0",
     "eslint-config-prettier": "^10.1.2",

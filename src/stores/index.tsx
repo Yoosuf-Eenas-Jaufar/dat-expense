@@ -1,4 +1,5 @@
 import React from 'react';
+import { ExpenseStore } from './expense-store';
 
 import './_hydration';
 
@@ -15,6 +16,7 @@ class Stores {
   auth = new AuthStore()
   uiLanguage = new UILanguageStore()
   uiTheme = new UIThemeStore()
+  expense = new ExpenseStore()
 };
 
 export const stores = new Stores();

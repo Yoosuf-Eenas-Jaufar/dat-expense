@@ -1,75 +1,39 @@
-/* eslint-disable react/no-unstable-nested-components */
-import { Link, Redirect, Tabs } from 'expo-router';
-import React from 'react';
-
-import { Pressable, Text } from '@/components/ui';
-import {
-  Feed as FeedIcon,
-  Settings as SettingsIcon,
-  Style as StyleIcon,
-  Home as ProfileIcon,
-} from '@/components/ui/icons';
-import { useAuth } from '@/app/providers/auth/auth-provider';
+import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
-  const { status, isFirstTime } = useAuth();
-
-  if (isFirstTime) {
-    return <Redirect href="/(auth)/onboarding" />;
-  }
-
-  if (status === 'signOut') {
-    return <Redirect href="/(auth)/login" />;
-  }
-  
   return (
-    <Tabs>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Feed',
-          tabBarIcon: ({ color }) => <FeedIcon color={color} />,
-          headerRight: () => <CreateNewPostLink />,
-          tabBarButtonTestID: 'feed-tab',
+          title: 'Home',
         }}
       />
+
       <Tabs.Screen
-        name="style"
+        name="transactions"
         options={{
-          title: 'Style',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <StyleIcon color={color} />,
-          tabBarButtonTestID: 'style-tab',
+          title: 'Transactions',
         }}
       />
+
       <Tabs.Screen
-        name="profile"
+        name="categories"
         options={{
-          title: 'Profile',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <ProfileIcon color={color} />,
-          tabBarButtonTestID: 'profile-tab',
+          title: 'Categories',
         }}
       />
+
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <SettingsIcon color={color} />,
-          tabBarButtonTestID: 'settings-tab',
         }}
       />
     </Tabs>
   );
 }
-
-const CreateNewPostLink = () => {
-  return (
-    <Link href={"/feed/add-post" as any} asChild>
-      <Pressable>
-        <Text className="px-3 text-primary-300">Create</Text>
-      </Pressable>
-    </Link>
-  );
-};

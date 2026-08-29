@@ -1,11 +1,12 @@
 import '../../global.css';
 
-import { Stack, SplashScreen } from 'expo-router';
+import { SplashScreen, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
+
 import { hydrateStores } from '@/stores';
+
 import { Providers } from './providers';
 
-// Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -14,12 +15,11 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Hydrate all stores from AsyncStorage
         await hydrateStores();
-        setIsHydrated(true);
       } catch (error) {
         console.error('Failed to hydrate stores:', error);
-        setIsHydrated(true); // Continue anyway
+      } finally {
+        setIsHydrated(true);
       }
     };
 
@@ -28,31 +28,27 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (isHydrated) {
-      // Hide splash screen once the app is ready
-      const hideSplash = async () => {
-        await SplashScreen.hideAsync();
-      };
-      
-      // Small delay to ensure smooth transition
-      setTimeout(() => {
-        hideSplash();
-      }, 500);
+      SplashScreen.hideAsync();
     }
   }, [isHydrated]);
 
   if (!isHydrated) {
-    return null; // or a loading screen
+    return null;
   }
 
   return (
     <Providers>
-      <Stack>
-        <Stack.Screen name="(app)" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(app)" />
+
+        <Stack.Screen
+          name="add-expense"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
       </Stack>
     </Providers>
   );
 }
-
-
