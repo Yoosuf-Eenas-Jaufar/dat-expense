@@ -1,3 +1,4 @@
+import { useNavigation } from '@react-navigation/native';
 import {
   Pressable,
   ScrollView,
@@ -8,6 +9,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+  const navigation = useNavigation<any>();
+
   const currentMonth = new Date().toLocaleString('en-US', {
     month: 'long',
     year: 'numeric',
@@ -59,7 +62,10 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <Pressable style={styles.addButton}>
+        <Pressable
+          style={styles.addButton}
+          onPress={() => navigation.navigate('AddExpense')}
+        >
           <Text style={styles.addButtonText}>+ Add Expense</Text>
         </Pressable>
       </ScrollView>
