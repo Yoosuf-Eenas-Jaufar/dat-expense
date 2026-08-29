@@ -23,70 +23,60 @@ const DEFAULT_CATEGORIES: Category[] = [
     color: '#8E8E93',
     isProtected: true,
   },
-
   {
     id: 'food',
     name: 'Food',
     icon: 'restaurant',
     color: '#FF9500',
   },
-
   {
     id: 'groceries',
     name: 'Groceries',
     icon: 'cart',
     color: '#34C759',
   },
-
   {
     id: 'transport',
     name: 'Transport',
     icon: 'car',
     color: '#007AFF',
   },
-
   {
     id: 'shopping',
     name: 'Shopping',
     icon: 'bag',
     color: '#AF52DE',
   },
-
   {
     id: 'bills',
     name: 'Bills',
     icon: 'receipt',
     color: '#FF3B30',
   },
-
   {
     id: 'subscriptions',
     name: 'Subscriptions',
     icon: 'repeat',
     color: '#5856D6',
   },
-
   {
     id: 'entertainment',
     name: 'Entertainment',
     icon: 'game-controller',
     color: '#FF2D55',
   },
-
   {
     id: 'health',
     name: 'Health',
     icon: 'medkit',
     color: '#30B0C7',
   },
-
   {
     id: 'education',
     name: 'Education',
     icon: 'book',
     color: '#5AC8FA',
   },
-
   {
     id: 'other',
     name: 'Other',
@@ -347,26 +337,49 @@ export class ExpenseStore {
     categoryId: string,
     rememberMerchant = false
   ): void {
-    const expense =
+    const selectedExpense =
       this.expenses.find(
         item => item.id === expenseId
       );
 
     if (
-      !expense ||
+      !selectedExpense ||
       !this.getCategory(categoryId)
     ) {
       return;
     }
 
-    expense.categoryId = categoryId;
+    // Always update the selected transaction.
+    selectedExpense.categoryId = categoryId;
 
-    if (rememberMerchant) {
-      this.rememberMerchantCategory(
-        expense.merchant,
-        categoryId
-      );
+    // If the user does not want to remember the merchant,
+    // only the selected transaction is changed.
+    if (!rememberMerchant) {
+      return;
     }
+
+    const selectedMerchantKey =
+      merchantKey(
+        selectedExpense.merchant
+      );
+
+    // Update all existing transactions from
+    // the same normalized merchant.
+    this.expenses.forEach(expense => {
+      if (
+        merchantKey(expense.merchant) ===
+        selectedMerchantKey
+      ) {
+        expense.categoryId = categoryId;
+      }
+    });
+
+    // Save or update the merchant rule so future
+    // transactions use the same category.
+    this.rememberMerchantCategory(
+      selectedExpense.merchant,
+      categoryId
+    );
   }
 
   rememberMerchantCategory(
@@ -387,14 +400,16 @@ export class ExpenseStore {
           rule.merchantKey === key
       );
 
+    const cleanMerchant = merchant
+      .replace(/\s+/g, ' ')
+      .trim();
+
     if (existingRule) {
       existingRule.categoryId =
         categoryId;
 
       existingRule.displayMerchantName =
-        merchant
-          .replace(/\s+/g, ' ')
-          .trim();
+        cleanMerchant;
 
       existingRule.updatedAt = now;
 
@@ -407,9 +422,7 @@ export class ExpenseStore {
       merchantKey: key,
 
       displayMerchantName:
-        merchant
-          .replace(/\s+/g, ' ')
-          .trim(),
+        cleanMerchant,
 
       categoryId,
 
@@ -476,6 +489,8 @@ export class ExpenseStore {
       return;
     }
 
+    // Existing expenses using the deleted
+    // category become Uncategorized.
     this.expenses.forEach(
       expense => {
         if (
@@ -488,6 +503,8 @@ export class ExpenseStore {
       }
     );
 
+    // Remove merchant rules that referenced
+    // the deleted category.
     this.merchantRules =
       this.merchantRules.filter(
         rule =>

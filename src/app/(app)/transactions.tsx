@@ -1,5 +1,13 @@
 import { observer } from 'mobx-react-lite';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStores } from '@/stores';
@@ -19,11 +27,43 @@ function formatDate(dateString: string): string {
 export default observer(function TransactionsScreen() {
   const { expense } = useStores();
 
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    string | null
+  >(null);
+
   const transactions = [...expense.expenses].sort(
     (a, b) =>
       new Date(b.transactionDateTime).getTime() -
       new Date(a.transactionDateTime).getTime()
   );
+
+  const changeCategory = (
+    expenseId: string,
+    merchant: string,
+    categoryId: string,
+    categoryName: string
+  ) => {
+    Alert.alert(
+      'Remember this merchant?',
+      `Should future transactions from ${merchant} automatically use the ${categoryName} category?`,
+      [
+        {
+          text: 'No',
+          onPress: () => {
+            expense.assignCategory(expenseId, categoryId, false);
+            setEditingTransactionId(null);
+          },
+        },
+        {
+          text: 'Yes',
+          onPress: () => {
+            expense.assignCategory(expenseId, categoryId, true);
+            setEditingTransactionId(null);
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -49,6 +89,9 @@ export default observer(function TransactionsScreen() {
         ) : (
           transactions.map(transaction => {
             const category = expense.getCategory(transaction.categoryId);
+
+            const isEditing =
+              editingTransactionId === transaction.id;
 
             return (
               <View key={transaction.id} style={styles.transactionCard}>
@@ -83,6 +126,72 @@ export default observer(function TransactionsScreen() {
                   <Text style={styles.reference}>
                     Ref: {transaction.referenceNumber}
                   </Text>
+                )}
+
+                <Pressable
+                  style={styles.changeCategoryButton}
+                  onPress={() =>
+                    setEditingTransactionId(
+                      isEditing ? null : transaction.id
+                    )
+                  }
+                >
+                  <Text style={styles.changeCategoryText}>
+                    {isEditing ? 'Cancel' : 'Change Category'}
+                  </Text>
+                </Pressable>
+
+                {isEditing && (
+                  <View style={styles.categoryPicker}>
+                    <Text style={styles.categoryPickerTitle}>
+                      Choose a category
+                    </Text>
+
+                    <View style={styles.categoryOptions}>
+                      {expense.categories.map(option => {
+                        const selected =
+                          transaction.categoryId === option.id;
+
+                        return (
+                          <Pressable
+                            key={option.id}
+                            style={[
+                              styles.categoryOption,
+                              selected &&
+                                styles.categoryOptionSelected,
+                            ]}
+                            onPress={() =>
+                              changeCategory(
+                                transaction.id,
+                                transaction.merchant,
+                                option.id,
+                                option.name
+                              )
+                            }
+                          >
+                            <View
+                              style={[
+                                styles.categoryDot,
+                                {
+                                  backgroundColor: option.color,
+                                },
+                              ]}
+                            />
+
+                            <Text
+                              style={[
+                                styles.categoryOptionText,
+                                selected &&
+                                  styles.categoryOptionTextSelected,
+                              ]}
+                            >
+                              {option.name}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
                 )}
               </View>
             );
@@ -137,7 +246,7 @@ const styles = StyleSheet.create({
   },
 
   transactionCard: {
-    marginBottom: 12,
+    marginBottom: 14,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     padding: 18,
@@ -187,5 +296,73 @@ const styles = StyleSheet.create({
     marginTop: 3,
     color: '#AAAAAA',
     fontSize: 11,
+  },
+
+  changeCategoryButton: {
+    alignSelf: 'flex-start',
+    marginTop: 14,
+    borderRadius: 10,
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  changeCategoryText: {
+    color: '#333333',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  categoryPicker: {
+    marginTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#DDDDDD',
+    paddingTop: 16,
+  },
+
+  categoryPickerTitle: {
+    marginBottom: 12,
+    color: '#333333',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  categoryOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+
+  categoryOptionSelected: {
+    borderColor: '#111111',
+    backgroundColor: '#111111',
+  },
+
+  categoryDot: {
+    width: 8,
+    height: 8,
+    marginRight: 7,
+    borderRadius: 4,
+  },
+
+  categoryOptionText: {
+    color: '#444444',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  categoryOptionTextSelected: {
+    color: '#FFFFFF',
   },
 });
