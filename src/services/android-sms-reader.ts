@@ -7,6 +7,8 @@ import DatSmsReaderModule, {
   type DatSmsMessage,
 } from '../../modules/dat-sms-reader/src/DatSmsReaderModule';
 
+const PAYMENT_SMS_SENDER = '455';
+
 export async function hasSmsPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') {
     return false;
@@ -25,11 +27,11 @@ export async function requestSmsPermission(): Promise<boolean> {
   const result = await PermissionsAndroid.request(
     PermissionsAndroid.PERMISSIONS.READ_SMS,
     {
-      title: 'Enable payment detection',
+      title: 'SMS Payment Detection',
       message:
-        'Dat Expense uses payment SMS messages from 455 to record your expenses automatically.',
+        'Dat Expense needs SMS access to detect payment messages from 455 and automatically add your expenses.',
       buttonPositive: 'Allow',
-      buttonNegative: 'Not now',
+      buttonNegative: 'Cancel',
     }
   );
 
@@ -39,7 +41,7 @@ export async function requestSmsPermission(): Promise<boolean> {
 export function getCurrentMonthStart(): number {
   const now = new Date();
 
-  return new Date(
+  const startOfMonth = new Date(
     now.getFullYear(),
     now.getMonth(),
     1,
@@ -47,7 +49,9 @@ export function getCurrentMonthStart(): number {
     0,
     0,
     0
-  ).getTime();
+  );
+
+  return startOfMonth.getTime();
 }
 
 export async function readCurrentMonth455Messages(): Promise<
@@ -57,14 +61,20 @@ export async function readCurrentMonth455Messages(): Promise<
     return [];
   }
 
-  const permissionGranted = await hasSmsPermission();
+  const permissionGranted =
+    await hasSmsPermission();
 
   if (!permissionGranted) {
-    throw new Error('SMS permission has not been granted.');
+    throw new Error(
+      'SMS permission has not been granted.'
+    );
   }
 
+  const sinceEpochMs =
+    getCurrentMonthStart();
+
   return DatSmsReaderModule.getMessagesFromSenderSince(
-    '455',
-    getCurrentMonthStart()
+    PAYMENT_SMS_SENDER,
+    sinceEpochMs
   );
 }

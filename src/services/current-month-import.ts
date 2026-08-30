@@ -1,12 +1,6 @@
+import { getExchangeRateToMVR } from '@/services/exchange-rate-service';
 import { parsePaymentMessage } from '@/services/transaction-parser';
 import type { ExpenseStore } from '@/stores/expense-store';
-import type { Currency } from '@/types/expense';
-
-type ForeignCurrency = Exclude<Currency, 'MVR'>;
-
-export type ExchangeRatesToMVR = Partial<
-  Record<ForeignCurrency, number>
->;
 
 export interface CurrentMonthImportResult {
   totalMessages: number;
@@ -17,21 +11,26 @@ export interface CurrentMonthImportResult {
   exchangeRateRequired: number;
 }
 
-function isInCurrentMonth(dateString: string): boolean {
-  const transactionDate = new Date(dateString);
+function isInCurrentMonth(
+  dateString: string
+): boolean {
+  const transactionDate =
+    new Date(dateString);
+
   const now = new Date();
 
   return (
-    transactionDate.getFullYear() === now.getFullYear() &&
-    transactionDate.getMonth() === now.getMonth()
+    transactionDate.getFullYear() ===
+      now.getFullYear() &&
+    transactionDate.getMonth() ===
+      now.getMonth()
   );
 }
 
-export function importCurrentMonthMessages(
+export async function importCurrentMonthMessages(
   messages: string[],
-  expenseStore: ExpenseStore,
-  exchangeRates: ExchangeRatesToMVR = {}
-): CurrentMonthImportResult {
+  expenseStore: ExpenseStore
+): Promise<CurrentMonthImportResult> {
   const result: CurrentMonthImportResult = {
     totalMessages: messages.length,
     imported: 0,
@@ -42,14 +41,19 @@ export function importCurrentMonthMessages(
   };
 
   for (const message of messages) {
-    const parsed = parsePaymentMessage(message);
+    const parsed =
+      parsePaymentMessage(message);
 
     if (!parsed) {
       result.invalid += 1;
       continue;
     }
 
-    if (!isInCurrentMonth(parsed.transactionDateTime)) {
+    if (
+      !isInCurrentMonth(
+        parsed.transactionDateTime
+      )
+    ) {
       result.outsideCurrentMonth += 1;
       continue;
     }
@@ -63,22 +67,19 @@ export function importCurrentMonthMessages(
       continue;
     }
 
-    let exchangeRateToMVR = 1;
+    const exchangeRateToMVR =
+      await getExchangeRateToMVR(
+        parsed.originalCurrency,
+        parsed.transactionDateTime
+      );
 
-    if (parsed.originalCurrency !== 'MVR') {
-      const rate =
-        exchangeRates[parsed.originalCurrency];
-
-      if (
-        rate === undefined ||
-        !Number.isFinite(rate) ||
-        rate <= 0
-      ) {
-        result.exchangeRateRequired += 1;
-        continue;
-      }
-
-      exchangeRateToMVR = rate;
+    if (
+      exchangeRateToMVR === null ||
+      !Number.isFinite(exchangeRateToMVR) ||
+      exchangeRateToMVR <= 0
+    ) {
+      result.exchangeRateRequired += 1;
+      continue;
     }
 
     const importedExpense =
