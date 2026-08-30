@@ -10,9 +10,8 @@ export type ExchangeRatesToMVR = Partial<
 
 export interface CurrentMonthImportResult {
   totalMessages: number;
-
   imported: number;
-  duplicates: number;
+  alreadyScanned: number;
   invalid: number;
   outsideCurrentMonth: number;
   exchangeRateRequired: number;
@@ -35,9 +34,8 @@ export function importCurrentMonthMessages(
 ): CurrentMonthImportResult {
   const result: CurrentMonthImportResult = {
     totalMessages: messages.length,
-
     imported: 0,
-    duplicates: 0,
+    alreadyScanned: 0,
     invalid: 0,
     outsideCurrentMonth: 0,
     exchangeRateRequired: 0,
@@ -61,7 +59,7 @@ export function importCurrentMonthMessages(
         parsed.referenceNumber
       )
     ) {
-      result.duplicates += 1;
+      result.alreadyScanned += 1;
       continue;
     }
 
@@ -90,7 +88,7 @@ export function importCurrentMonthMessages(
       );
 
     if (!importedExpense) {
-      result.duplicates += 1;
+      result.alreadyScanned += 1;
       continue;
     }
 

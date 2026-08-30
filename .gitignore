@@ -13,7 +13,7 @@ web-build/
 # expo router
 # expo-env.d.ts
 
-
+/modules/*/android/build/
 
 /ios
 /android

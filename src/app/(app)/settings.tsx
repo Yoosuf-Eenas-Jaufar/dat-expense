@@ -11,6 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  hasSmsPermission,
+  readCurrentMonth455Messages,
+  requestSmsPermission,
+} from '@/services/android-sms-reader';
+import { importCurrentMonthMessages } from '@/services/current-month-import';
 import { importPaymentMessage } from '@/services/payment-import';
 import { parsePaymentMessage } from '@/services/transaction-parser';
 import { useStores } from '@/stores';
@@ -21,11 +27,74 @@ export default observer(function SettingsScreen() {
   const [paymentMessage, setPaymentMessage] = useState('');
   const [exchangeRate, setExchangeRate] = useState('');
 
+  const [isScanning, setIsScanning] = useState(false);
+  const [lastScanResult, setLastScanResult] = useState<string | null>(null);
+
   const parsedMessage = parsePaymentMessage(paymentMessage);
 
   const requiresExchangeRate =
     parsedMessage !== null &&
     parsedMessage.originalCurrency !== 'MVR';
+
+  const handleNativeScan = async () => {
+    if (isScanning) {
+      return;
+    }
+
+    try {
+      setIsScanning(true);
+
+      let permissionGranted = await hasSmsPermission();
+
+      if (!permissionGranted) {
+        permissionGranted = await requestSmsPermission();
+      }
+
+      if (!permissionGranted) {
+        Alert.alert(
+          'Permission not granted',
+          'SMS access is required for automatic payment detection.'
+        );
+
+        return;
+      }
+
+      const messages = await readCurrentMonth455Messages();
+
+      const result = importCurrentMonthMessages(
+        messages.map(message => message.body),
+        expense
+      );
+
+      const summary =
+        `${messages.length} message${messages.length === 1 ? '' : 's'} found · ` +
+        `${result.imported} new · ` +
+        `${result.alreadyScanned} already scanned`;
+
+      setLastScanResult(summary);
+
+      Alert.alert(
+        'Scan complete',
+        [
+          `Messages from 455: ${messages.length}`,
+          `New transactions: ${result.imported}`,
+          `Already scanned: ${result.alreadyScanned}`,
+          `Invalid: ${result.invalid}`,
+          `Outside current month: ${result.outsideCurrentMonth}`,
+          `Exchange rate required: ${result.exchangeRateRequired}`,
+        ].join('\n')
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'The SMS scan could not be completed.';
+
+      Alert.alert('Scan failed', message);
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   const handleImport = () => {
     const rate =
@@ -62,12 +131,34 @@ export default observer(function SettingsScreen() {
       >
         <Text style={styles.title}>Settings</Text>
 
+        <Text style={styles.sectionTitle}>Payment Detection</Text>
+
         <View style={styles.card}>
-          <Text style={styles.itemTitle}>Payment Detection</Text>
+          <Text style={styles.itemTitle}>Automatic SMS Detection</Text>
 
           <Text style={styles.itemDescription}>
-            Automatic Android payment detection will be connected later.
+            Scan payment messages from 455 for the current month and add new
+            transactions to Dat Expense.
           </Text>
+
+          <Pressable
+            style={[
+              styles.scanButton,
+              isScanning && styles.buttonDisabled,
+            ]}
+            onPress={handleNativeScan}
+            disabled={isScanning}
+          >
+            <Text style={styles.scanButtonText}>
+              {isScanning ? 'Scanning...' : 'Enable & Scan Payments'}
+            </Text>
+          </Pressable>
+
+          {lastScanResult && (
+            <Text style={styles.scanResult}>
+              {lastScanResult}
+            </Text>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -78,7 +169,7 @@ export default observer(function SettingsScreen() {
         <Text style={styles.sectionTitle}>Import Payment Message</Text>
 
         <Text style={styles.sectionDescription}>
-          Paste a supported payment message from 455 to test Dat Expense's
+          Paste a supported payment message from 455 to manually test the
           transaction parser.
         </Text>
 
@@ -95,7 +186,9 @@ export default observer(function SettingsScreen() {
 
           {parsedMessage && (
             <View style={styles.previewCard}>
-              <Text style={styles.previewTitle}>Detected Transaction</Text>
+              <Text style={styles.previewTitle}>
+                Detected Transaction
+              </Text>
 
               <View style={styles.previewRow}>
                 <Text style={styles.previewLabel}>Merchant</Text>
@@ -158,7 +251,7 @@ export default observer(function SettingsScreen() {
             style={[
               styles.importButton,
               paymentMessage.trim().length === 0 &&
-                styles.importButtonDisabled,
+                styles.buttonDisabled,
             ]}
             onPress={handleImport}
             disabled={paymentMessage.trim().length === 0}
@@ -170,11 +263,12 @@ export default observer(function SettingsScreen() {
         </View>
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Duplicate Protection</Text>
+          <Text style={styles.infoTitle}>Already Scanned Protection</Text>
 
           <Text style={styles.infoText}>
-            Dat Expense uses each payment's Reference No. to prevent the same
-            transaction from being saved more than once.
+            Dat Expense uses each payment's Reference No. to recognize messages
+            that have already been scanned and prevents them from being saved
+            again.
           </Text>
         </View>
 
@@ -208,6 +302,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  sectionTitle: {
+    marginTop: 8,
+    marginBottom: 8,
+    color: '#111111',
+    fontSize: 19,
+    fontWeight: '700',
+  },
+
+  sectionDescription: {
+    marginBottom: 12,
+    color: '#777777',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+
   card: {
     marginBottom: 14,
     borderRadius: 16,
@@ -228,19 +337,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  sectionTitle: {
-    marginTop: 18,
-    marginBottom: 6,
-    color: '#111111',
-    fontSize: 19,
+  scanButton: {
+    alignItems: 'center',
+    marginTop: 16,
+    borderRadius: 12,
+    backgroundColor: '#111111',
+    paddingVertical: 14,
+  },
+
+  scanButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '700',
   },
 
-  sectionDescription: {
-    marginBottom: 12,
-    color: '#777777',
-    fontSize: 13,
-    lineHeight: 19,
+  scanResult: {
+    marginTop: 12,
+    color: '#666666',
+    fontSize: 12,
+    lineHeight: 18,
   },
 
   importCard: {
@@ -343,14 +458,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
 
-  importButtonDisabled: {
-    opacity: 0.4,
-  },
-
   importButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+
+  buttonDisabled: {
+    opacity: 0.4,
   },
 
   infoCard: {
