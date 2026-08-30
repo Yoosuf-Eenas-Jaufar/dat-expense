@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import {
@@ -32,8 +32,10 @@ function formatDate(dateString: string): string {
 export default observer(function TransactionsScreen() {
   const { expense } = useStores();
 
-  const [editingTransactionId, setEditingTransactionId] =
-    useState<string | null>(null);
+  const [
+    editingTransactionId,
+    setEditingTransactionId,
+  ] = useState<string | null>(null);
 
   const transactions = [...expense.expenses].sort(
     (a, b) =>
@@ -260,9 +262,9 @@ export default observer(function TransactionsScreen() {
 
                 <Pressable
                   style={({ pressed }) => [
-                    styles.changeCategoryButton,
+                    styles.categoryAction,
                     isEditing &&
-                      styles.changeCategoryButtonActive,
+                      styles.categoryActionActive,
                     pressed &&
                       styles.buttonPressed,
                   ]}
@@ -274,31 +276,67 @@ export default observer(function TransactionsScreen() {
                     )
                   }
                 >
-                  <Ionicons
-                    name={
-                      isEditing
-                        ? 'close-outline'
-                        : 'pricetag-outline'
+                  <View
+                    style={
+                      styles.categoryActionLeft
                     }
-                    size={15}
-                    color={
-                      isEditing
-                        ? '#FFFFFF'
-                        : '#333333'
-                    }
-                  />
-
-                  <Text
-                    style={[
-                      styles.changeCategoryText,
-                      isEditing &&
-                        styles.changeCategoryTextActive,
-                    ]}
                   >
-                    {isEditing
-                      ? 'Cancel'
-                      : 'Change Category'}
-                  </Text>
+                    <View
+                      style={[
+                        styles.categoryActionIcon,
+                        isEditing &&
+                          styles.categoryActionIconActive,
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          isEditing
+                            ? 'close'
+                            : 'pricetag-outline'
+                        }
+                        size={17}
+                        color={
+                          isEditing
+                            ? '#FFFFFF'
+                            : '#555555'
+                        }
+                      />
+                    </View>
+
+                    <View>
+                      <Text
+                        style={[
+                          styles.categoryActionTitle,
+                          isEditing &&
+                            styles.categoryActionTitleActive,
+                        ]}
+                      >
+                        {isEditing
+                          ? 'Close Categories'
+                          : 'Change Category'}
+                      </Text>
+
+                      {!isEditing && (
+                        <Text
+                          style={
+                            styles.categoryActionSubtitle
+                          }
+                        >
+                          Currently{' '}
+                          {category?.name ??
+                            'Uncategorized'}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {!isEditing && (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color="#999999"
+                    />
+                  )}
                 </Pressable>
 
                 {isEditing && (
@@ -316,9 +354,10 @@ export default observer(function TransactionsScreen() {
                         styles.categoryPickerHint
                       }
                     >
-                      You can choose whether Dat Expense
-                      should remember the merchant after
-                      selecting a category.
+                      Select a category for this
+                      transaction. You can then choose
+                      whether Dat Expense should
+                      remember the merchant.
                     </Text>
 
                     <View
@@ -541,7 +580,8 @@ const styles = StyleSheet.create({
 
   detailsSection: {
     marginTop: 15,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
     borderTopColor: '#ECECEC',
     paddingTop: 12,
   },
@@ -559,30 +599,58 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  changeCategoryButton: {
-    alignSelf: 'flex-start',
+  categoryAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
-    borderRadius: 10,
-    backgroundColor: '#F1F1F1',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+    borderRadius: 13,
+    backgroundColor: '#FAFAFA',
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 11,
   },
 
-  changeCategoryButtonActive: {
+  categoryActionActive: {
+    borderColor: '#111111',
     backgroundColor: '#111111',
   },
 
-  changeCategoryText: {
-    marginLeft: 5,
-    color: '#333333',
-    fontSize: 12,
-    fontWeight: '600',
+  categoryActionLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
-  changeCategoryTextActive: {
+  categoryActionIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 34,
+    height: 34,
+    marginRight: 10,
+    borderRadius: 10,
+    backgroundColor: '#EEEEEE',
+  },
+
+  categoryActionIconActive: {
+    backgroundColor: '#333333',
+  },
+
+  categoryActionTitle: {
+    color: '#333333',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  categoryActionTitleActive: {
     color: '#FFFFFF',
+  },
+
+  categoryActionSubtitle: {
+    marginTop: 2,
+    color: '#999999',
+    fontSize: 10,
   },
 
   buttonPressed: {
@@ -591,7 +659,8 @@ const styles = StyleSheet.create({
 
   categoryPicker: {
     marginTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
     borderTopColor: '#E5E5E5',
     paddingTop: 16,
   },

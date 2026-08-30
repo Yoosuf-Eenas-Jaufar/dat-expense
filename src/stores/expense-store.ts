@@ -11,7 +11,6 @@ import type {
   ParsedPaymentTransaction,
 } from '@/types/expense';
 
-import type { PVoid } from './types';
 
 export const UNCATEGORIZED_CATEGORY_ID = 'uncategorized';
 
@@ -534,7 +533,7 @@ export class ExpenseStore {
       new Date().toISOString();
   }
 
-  hydrate = async (): PVoid => {
+  hydrate = async (): Promise<void> => {
     await hydrateStore(this);
 
     const hasUncategorized =

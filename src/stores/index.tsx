@@ -1,41 +1,33 @@
 import React from 'react';
-import { ExpenseStore } from './expense-store';
 
 import './_hydration';
+import { ExpenseStore } from './expense-store';
 
-import { AuthStore, TokenType, AuthStatus } from './auth-store';
-import { UILanguageStore } from './ui-language-store';
-import { UIThemeStore } from './ui-theme-store';
-import { IStore, PVoid } from './types';
-
-// Re-export types
-export type { TokenType, AuthStatus };
-
-// Centralized stores object
 class Stores {
-  auth = new AuthStore()
-  uiLanguage = new UILanguageStore()
-  uiTheme = new UIThemeStore()
-  expense = new ExpenseStore()
-};
+  expense = new ExpenseStore();
+}
 
 export const stores = new Stores();
 
-const storeContext = React.createContext<Stores>(stores);
-export const StoresProvider = ({ children }: any) => (
-  <storeContext.Provider value={stores}>{children}</storeContext.Provider>
-);
+const storeContext =
+  React.createContext<Stores>(stores);
 
-export const useStores = (): Stores => React.useContext(storeContext);
+export function StoresProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <storeContext.Provider value={stores}>
+      {children}
+    </storeContext.Provider>
+  );
+}
 
-export const hydrateStores = async (): PVoid => {
-  for (const key in stores) {
-    if (Object.prototype.hasOwnProperty.call(stores, key)) {
-      const s = (stores as any)[key] as IStore;
+export const useStores = (): Stores =>
+  React.useContext(storeContext);
 
-      if (s.hydrate) {
-        await s.hydrate();
-      }
-    }
-  }
-};
+export const hydrateStores =
+  async (): Promise<void> => {
+    await stores.expense.hydrate();
+  };

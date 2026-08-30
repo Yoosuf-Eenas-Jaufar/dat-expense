@@ -1,5 +1,3 @@
-import '../../global.css';
-
 import { SplashScreen, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 
@@ -11,11 +9,18 @@ import { Providers } from './providers';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [isMinimumLoadTimePassed, setIsMinimumLoadTimePassed] =
+  const [isHydrated, setIsHydrated] =
     useState(false);
-  const [nativeSplashHidden, setNativeSplashHidden] =
-    useState(false);
+
+  const [
+    isMinimumLoadTimePassed,
+    setIsMinimumLoadTimePassed,
+  ] = useState(false);
+
+  const [
+    nativeSplashHidden,
+    setNativeSplashHidden,
+  ] = useState(false);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -31,7 +36,7 @@ export default function RootLayout() {
       }
     };
 
-    initializeApp();
+    void initializeApp();
   }, []);
 
   useEffect(() => {
@@ -56,7 +61,7 @@ export default function RootLayout() {
       }
     };
 
-    hideNativeSplash();
+    void hideNativeSplash();
   }, []);
 
   const isAppReady =
