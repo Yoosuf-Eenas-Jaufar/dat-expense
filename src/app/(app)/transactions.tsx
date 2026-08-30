@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import {
@@ -11,6 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStores } from '@/stores';
+
+function formatMVR(amount: number): string {
+  return `MVR ${amount.toFixed(2)}`;
+}
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -27,9 +32,8 @@ function formatDate(dateString: string): string {
 export default observer(function TransactionsScreen() {
   const { expense } = useStores();
 
-  const [editingTransactionId, setEditingTransactionId] = useState<
-    string | null
-  >(null);
+  const [editingTransactionId, setEditingTransactionId] =
+    useState<string | null>(null);
 
   const transactions = [...expense.expenses].sort(
     (a, b) =>
@@ -45,19 +49,29 @@ export default observer(function TransactionsScreen() {
   ) => {
     Alert.alert(
       'Remember this merchant?',
-      `Should future transactions from ${merchant} automatically use the ${categoryName} category?`,
+      `Should transactions from ${merchant} automatically use the ${categoryName} category?`,
       [
         {
           text: 'No',
           onPress: () => {
-            expense.assignCategory(expenseId, categoryId, false);
+            expense.assignCategory(
+              expenseId,
+              categoryId,
+              false
+            );
+
             setEditingTransactionId(null);
           },
         },
         {
           text: 'Yes',
           onPress: () => {
-            expense.assignCategory(expenseId, categoryId, true);
+            expense.assignCategory(
+              expenseId,
+              categoryId,
+              true
+            );
+
             setEditingTransactionId(null);
           },
         },
@@ -66,130 +80,306 @@ export default observer(function TransactionsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top']}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Transactions</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            Transactions
+          </Text>
 
-        <Text style={styles.subtitle}>
-          {transactions.length}{' '}
-          {transactions.length === 1 ? 'transaction' : 'transactions'}
-        </Text>
+          <Text style={styles.subtitle}>
+            {transactions.length}{' '}
+            {transactions.length === 1
+              ? 'transaction'
+              : 'transactions'}
+          </Text>
+        </View>
 
         {transactions.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No transactions yet</Text>
+            <View style={styles.emptyIcon}>
+              <Ionicons
+                name="receipt-outline"
+                size={27}
+                color="#777777"
+              />
+            </View>
+
+            <Text style={styles.emptyTitle}>
+              No transactions yet
+            </Text>
 
             <Text style={styles.emptyText}>
-              Your imported and manually added expenses will appear here.
+              Your detected payments and manually added
+              expenses will appear here.
             </Text>
           </View>
         ) : (
           transactions.map(transaction => {
-            const category = expense.getCategory(transaction.categoryId);
+            const category =
+              expense.getCategory(
+                transaction.categoryId
+              );
 
             const isEditing =
-              editingTransactionId === transaction.id;
+              editingTransactionId ===
+              transaction.id;
+
+            const categoryColor =
+              category?.color ?? '#8E8E93';
 
             return (
-              <View key={transaction.id} style={styles.transactionCard}>
-                <View style={styles.topRow}>
-                  <View style={styles.merchantContainer}>
-                    <Text style={styles.merchant}>
+              <View
+                key={transaction.id}
+                style={styles.transactionCard}
+              >
+                <View style={styles.transactionTop}>
+                  <View
+                    style={[
+                      styles.categoryIcon,
+                      {
+                        backgroundColor:
+                          `${categoryColor}18`,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.categoryIconDot,
+                        {
+                          backgroundColor:
+                            categoryColor,
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  <View style={styles.mainInfo}>
+                    <Text
+                      style={styles.merchant}
+                      numberOfLines={1}
+                    >
                       {transaction.merchant}
                     </Text>
 
-                    <Text style={styles.category}>
-                      {category?.name ?? 'Uncategorized'}
+                    <View style={styles.metaRow}>
+                      <Text style={styles.category}>
+                        {category?.name ??
+                          'Uncategorized'}
+                      </Text>
+
+                      <View
+                        style={[
+                          styles.sourceBadge,
+                          transaction.source ===
+                          'sms'
+                            ? styles.smsBadge
+                            : styles.manualBadge,
+                        ]}
+                      >
+                        <Text
+                          style={
+                            styles.sourceBadgeText
+                          }
+                        >
+                          {transaction.source ===
+                          'sms'
+                            ? 'SMS'
+                            : 'MANUAL'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.amountContainer}>
+                    <Text style={styles.amount}>
+                      {formatMVR(
+                        transaction.amountMVR
+                      )}
+                    </Text>
+
+                    {transaction.originalCurrency !==
+                      'MVR' && (
+                      <Text
+                        style={
+                          styles.originalAmount
+                        }
+                      >
+                        {
+                          transaction.originalCurrency
+                        }{' '}
+                        {transaction.originalAmount.toFixed(
+                          2
+                        )}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.detailsSection}>
+                  <View style={styles.detailRow}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={14}
+                      color="#999999"
+                    />
+
+                    <Text style={styles.detailText}>
+                      {formatDate(
+                        transaction.transactionDateTime
+                      )}
                     </Text>
                   </View>
 
-                  <Text style={styles.amount}>
-                    MVR {transaction.amountMVR.toFixed(2)}
-                  </Text>
+                  {transaction.referenceNumber && (
+                    <View style={styles.detailRow}>
+                      <Ionicons
+                        name="document-text-outline"
+                        size={14}
+                        color="#999999"
+                      />
+
+                      <Text
+                        style={styles.detailText}
+                        numberOfLines={1}
+                      >
+                        Ref:{' '}
+                        {
+                          transaction.referenceNumber
+                        }
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
-                {transaction.originalCurrency !== 'MVR' && (
-                  <Text style={styles.originalAmount}>
-                    Original: {transaction.originalCurrency}{' '}
-                    {transaction.originalAmount.toFixed(2)}
-                  </Text>
-                )}
-
-                <Text style={styles.date}>
-                  {formatDate(transaction.transactionDateTime)}
-                </Text>
-
-                {transaction.referenceNumber && (
-                  <Text style={styles.reference}>
-                    Ref: {transaction.referenceNumber}
-                  </Text>
-                )}
-
                 <Pressable
-                  style={styles.changeCategoryButton}
+                  style={({ pressed }) => [
+                    styles.changeCategoryButton,
+                    isEditing &&
+                      styles.changeCategoryButtonActive,
+                    pressed &&
+                      styles.buttonPressed,
+                  ]}
                   onPress={() =>
                     setEditingTransactionId(
-                      isEditing ? null : transaction.id
+                      isEditing
+                        ? null
+                        : transaction.id
                     )
                   }
                 >
-                  <Text style={styles.changeCategoryText}>
-                    {isEditing ? 'Cancel' : 'Change Category'}
+                  <Ionicons
+                    name={
+                      isEditing
+                        ? 'close-outline'
+                        : 'pricetag-outline'
+                    }
+                    size={15}
+                    color={
+                      isEditing
+                        ? '#FFFFFF'
+                        : '#333333'
+                    }
+                  />
+
+                  <Text
+                    style={[
+                      styles.changeCategoryText,
+                      isEditing &&
+                        styles.changeCategoryTextActive,
+                    ]}
+                  >
+                    {isEditing
+                      ? 'Cancel'
+                      : 'Change Category'}
                   </Text>
                 </Pressable>
 
                 {isEditing && (
                   <View style={styles.categoryPicker}>
-                    <Text style={styles.categoryPickerTitle}>
+                    <Text
+                      style={
+                        styles.categoryPickerTitle
+                      }
+                    >
                       Choose a category
                     </Text>
 
-                    <View style={styles.categoryOptions}>
-                      {expense.categories.map(option => {
-                        const selected =
-                          transaction.categoryId === option.id;
+                    <Text
+                      style={
+                        styles.categoryPickerHint
+                      }
+                    >
+                      You can choose whether Dat Expense
+                      should remember the merchant after
+                      selecting a category.
+                    </Text>
 
-                        return (
-                          <Pressable
-                            key={option.id}
-                            style={[
-                              styles.categoryOption,
-                              selected &&
-                                styles.categoryOptionSelected,
-                            ]}
-                            onPress={() =>
-                              changeCategory(
-                                transaction.id,
-                                transaction.merchant,
-                                option.id,
-                                option.name
-                              )
-                            }
-                          >
-                            <View
-                              style={[
-                                styles.categoryDot,
-                                {
-                                  backgroundColor: option.color,
-                                },
-                              ]}
-                            />
+                    <View
+                      style={styles.categoryOptions}
+                    >
+                      {expense.categories.map(
+                        option => {
+                          const selected =
+                            transaction.categoryId ===
+                            option.id;
 
-                            <Text
-                              style={[
-                                styles.categoryOptionText,
+                          return (
+                            <Pressable
+                              key={option.id}
+                              style={({ pressed }) => [
+                                styles.categoryOption,
                                 selected &&
-                                  styles.categoryOptionTextSelected,
+                                  styles.categoryOptionSelected,
+                                pressed &&
+                                  styles.categoryOptionPressed,
                               ]}
+                              onPress={() =>
+                                changeCategory(
+                                  transaction.id,
+                                  transaction.merchant,
+                                  option.id,
+                                  option.name
+                                )
+                              }
                             >
-                              {option.name}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
+                              <View
+                                style={[
+                                  styles.categoryDot,
+                                  {
+                                    backgroundColor:
+                                      option.color,
+                                  },
+                                ]}
+                              />
+
+                              <Text
+                                style={[
+                                  styles.categoryOptionText,
+                                  selected &&
+                                    styles.categoryOptionTextSelected,
+                                ]}
+                              >
+                                {option.name}
+                              </Text>
+
+                              {selected && (
+                                <Ionicons
+                                  name="checkmark"
+                                  size={14}
+                                  color="#FFFFFF"
+                                />
+                              )}
+                            </Pressable>
+                          );
+                        }
+                      )}
                     </View>
                   </View>
                 )}
@@ -213,23 +403,38 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
+  header: {
+    marginBottom: 20,
+  },
+
   title: {
     color: '#111111',
-    fontSize: 26,
+    fontSize: 27,
     fontWeight: '700',
   },
 
   subtitle: {
     marginTop: 4,
-    marginBottom: 20,
-    color: '#777777',
-    fontSize: 14,
+    color: '#888888',
+    fontSize: 13,
   },
 
   emptyCard: {
-    borderRadius: 16,
+    alignItems: 'center',
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 34,
+  },
+
+  emptyIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 54,
+    height: 54,
+    marginBottom: 14,
+    borderRadius: 27,
+    backgroundColor: '#F2F2F2',
   },
 
   emptyTitle: {
@@ -240,26 +445,43 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
+    maxWidth: 280,
     color: '#777777',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
   },
 
   transactionCard: {
     marginBottom: 14,
-    borderRadius: 16,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
     padding: 18,
   },
 
-  topRow: {
+  transactionTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 
-  merchantContainer: {
-    flex: 1,
+  categoryIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 42,
+    height: 42,
     marginRight: 12,
+    borderRadius: 13,
+  },
+
+  categoryIconDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+
+  mainInfo: {
+    flex: 1,
+    marginRight: 10,
   },
 
   merchant: {
@@ -268,63 +490,124 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+
   category: {
-    marginTop: 4,
+    flexShrink: 1,
     color: '#777777',
-    fontSize: 13,
+    fontSize: 12,
+  },
+
+  sourceBadge: {
+    marginLeft: 7,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+
+  smsBadge: {
+    backgroundColor: '#EEF3F8',
+  },
+
+  manualBadge: {
+    backgroundColor: '#F1F1F1',
+  },
+
+  sourceBadgeText: {
+    color: '#777777',
+    fontSize: 8,
+    fontWeight: '700',
+  },
+
+  amountContainer: {
+    alignItems: 'flex-end',
   },
 
   amount: {
     color: '#222222',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
 
   originalAmount: {
-    marginTop: 12,
-    color: '#555555',
-    fontSize: 13,
-  },
-
-  date: {
-    marginTop: 10,
+    marginTop: 4,
     color: '#888888',
-    fontSize: 12,
+    fontSize: 11,
   },
 
-  reference: {
-    marginTop: 3,
-    color: '#AAAAAA',
+  detailsSection: {
+    marginTop: 15,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#ECECEC',
+    paddingTop: 12,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+
+  detailText: {
+    flex: 1,
+    marginLeft: 7,
+    color: '#888888',
     fontSize: 11,
   },
 
   changeCategoryButton: {
     alignSelf: 'flex-start',
-    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
     borderRadius: 10,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F1F1F1',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
+  },
+
+  changeCategoryButtonActive: {
+    backgroundColor: '#111111',
   },
 
   changeCategoryText: {
+    marginLeft: 5,
     color: '#333333',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
+  },
+
+  changeCategoryTextActive: {
+    color: '#FFFFFF',
+  },
+
+  buttonPressed: {
+    opacity: 0.75,
   },
 
   categoryPicker: {
     marginTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#DDDDDD',
+    borderTopColor: '#E5E5E5',
     paddingTop: 16,
   },
 
   categoryPickerTitle: {
-    marginBottom: 12,
-    color: '#333333',
+    color: '#222222',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+
+  categoryPickerHint: {
+    marginTop: 4,
+    marginBottom: 12,
+    color: '#888888',
+    fontSize: 11,
+    lineHeight: 16,
   },
 
   categoryOptions: {
@@ -349,6 +632,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
   },
 
+  categoryOptionPressed: {
+    opacity: 0.75,
+  },
+
   categoryDot: {
     width: 8,
     height: 8,
@@ -357,8 +644,9 @@ const styles = StyleSheet.create({
   },
 
   categoryOptionText: {
+    marginRight: 3,
     color: '#444444',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
   },
 

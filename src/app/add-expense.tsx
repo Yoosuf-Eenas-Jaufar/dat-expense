@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
@@ -14,11 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  UNCATEGORIZED_CATEGORY_ID,
-} from '@/stores/expense-store';
 import { useStores } from '@/stores';
-
+import { UNCATEGORIZED_CATEGORY_ID } from '@/stores/expense-store';
 import type { Currency } from '@/types/expense';
 
 const CURRENCIES: Currency[] = ['MVR', 'USD', 'EUR'];
@@ -27,20 +25,29 @@ function getTodayString(): string {
   const now = new Date();
 
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(
+    now.getMonth() + 1
+  ).padStart(2, '0');
+  const day = String(
+    now.getDate()
+  ).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
 }
 
-function parseTransactionDate(dateText: string): Date | null {
-  const match = dateText.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+function parseTransactionDate(
+  dateText: string
+): Date | null {
+  const match = dateText.match(
+    /^(\d{4})-(\d{2})-(\d{2})$/
+  );
 
   if (!match) {
     return null;
   }
 
-  const [, yearText, monthText, dayText] = match;
+  const [, yearText, monthText, dayText] =
+    match;
 
   const year = Number(yearText);
   const month = Number(monthText);
@@ -68,281 +75,549 @@ function parseTransactionDate(dateText: string): Date | null {
   return date;
 }
 
-export default observer(function AddExpenseScreen() {
-  const { expense } = useStores();
+export default observer(
+  function AddExpenseScreen() {
+    const { expense } = useStores();
 
-  const [amount, setAmount] = useState('');
-  const [merchant, setMerchant] = useState('');
-  const [currency, setCurrency] = useState<Currency>('MVR');
+    const [amount, setAmount] =
+      useState('');
 
-  const [categoryId, setCategoryId] = useState(
-    UNCATEGORIZED_CATEGORY_ID
-  );
+    const [merchant, setMerchant] =
+      useState('');
 
-  const [date, setDate] = useState(getTodayString());
+    const [currency, setCurrency] =
+      useState<Currency>('MVR');
 
-  const [exchangeRate, setExchangeRate] = useState('');
-
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleCurrencyChange = (newCurrency: Currency) => {
-    setCurrency(newCurrency);
-
-    if (newCurrency === 'MVR') {
-      setExchangeRate('');
-    }
-  };
-
-  const handleSave = () => {
-    if (isSaving) {
-      return;
-    }
-
-    const parsedAmount = Number(amount.replace(/,/g, '').trim());
-
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert(
-        'Invalid amount',
-        'Enter an amount greater than zero.'
-      );
-      return;
-    }
-
-    const cleanMerchant = merchant.replace(/\s+/g, ' ').trim();
-
-    if (!cleanMerchant) {
-      Alert.alert(
-        'Merchant required',
-        'Enter the merchant or place where the expense was made.'
-      );
-      return;
-    }
-
-    const transactionDate = parseTransactionDate(date.trim());
-
-    if (!transactionDate) {
-      Alert.alert(
-        'Invalid date',
-        'Enter the date in YYYY-MM-DD format.'
-      );
-      return;
-    }
-
-    let rateToMVR = 1;
-
-    if (currency !== 'MVR') {
-      rateToMVR = Number(
-        exchangeRate.replace(/,/g, '').trim()
+    const [categoryId, setCategoryId] =
+      useState(
+        UNCATEGORIZED_CATEGORY_ID
       );
 
-      if (!Number.isFinite(rateToMVR) || rateToMVR <= 0) {
-        Alert.alert(
-          'Exchange rate required',
-          `Enter how many MVR equal 1 ${currency}.`
-        );
+    const [date, setDate] =
+      useState(getTodayString());
+
+    const [exchangeRate, setExchangeRate] =
+      useState('');
+
+    const [isSaving, setIsSaving] =
+      useState(false);
+
+    const handleCurrencyChange = (
+      newCurrency: Currency
+    ) => {
+      setCurrency(newCurrency);
+
+      if (newCurrency === 'MVR') {
+        setExchangeRate('');
+      }
+    };
+
+    const handleSave = () => {
+      if (isSaving) {
         return;
       }
-    }
 
-    try {
-      setIsSaving(true);
+      const parsedAmount = Number(
+        amount
+          .replace(/,/g, '')
+          .trim()
+      );
 
-      expense.addManualExpense({
-        amount: parsedAmount,
-        currency,
-        exchangeRateToMVR: rateToMVR,
-        merchant: cleanMerchant,
-        categoryId,
-        transactionDateTime: transactionDate.toISOString(),
-      });
+      if (
+        !Number.isFinite(parsedAmount) ||
+        parsedAmount <= 0
+      ) {
+        Alert.alert(
+          'Invalid amount',
+          'Enter an amount greater than zero.'
+        );
 
-      router.back();
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'The expense could not be saved.';
+        return;
+      }
 
-      Alert.alert('Unable to save expense', message);
+      const cleanMerchant = merchant
+        .replace(/\s+/g, ' ')
+        .trim();
 
-      setIsSaving(false);
-    }
-  };
+      if (!cleanMerchant) {
+        Alert.alert(
+          'Merchant required',
+          'Enter the merchant or place where the expense was made.'
+        );
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        return;
+      }
+
+      const transactionDate =
+        parseTransactionDate(
+          date.trim()
+        );
+
+      if (!transactionDate) {
+        Alert.alert(
+          'Invalid date',
+          'Enter the date in YYYY-MM-DD format.'
+        );
+
+        return;
+      }
+
+      let rateToMVR = 1;
+
+      if (currency !== 'MVR') {
+        rateToMVR = Number(
+          exchangeRate
+            .replace(/,/g, '')
+            .trim()
+        );
+
+        if (
+          !Number.isFinite(rateToMVR) ||
+          rateToMVR <= 0
+        ) {
+          Alert.alert(
+            'Exchange rate required',
+            `Enter how many MVR equal 1 ${currency}.`
+          );
+
+          return;
+        }
+      }
+
+      try {
+        setIsSaving(true);
+
+        expense.addManualExpense({
+          amount: parsedAmount,
+          currency,
+          exchangeRateToMVR:
+            rateToMVR,
+          merchant: cleanMerchant,
+          categoryId,
+          transactionDateTime:
+            transactionDate.toISOString(),
+        });
+
+        router.back();
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'The expense could not be saved.';
+
+        Alert.alert(
+          'Unable to save expense',
+          message
+        );
+
+        setIsSaving(false);
+      }
+    };
+
+    return (
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={['top', 'bottom']}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={
+            Platform.OS === 'ios'
+              ? 'padding'
+              : undefined
+          }
         >
-          <View style={styles.header}>
-            <Pressable
-              style={styles.headerButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
+          <ScrollView
+            contentContainerStyle={
+              styles.content
+            }
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={
+              false
+            }
+          >
+            <View style={styles.header}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.closeButton,
+                  pressed &&
+                    styles.buttonPressed,
+                ]}
+                onPress={() =>
+                  router.back()
+                }
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color="#333333"
+                />
+              </Pressable>
 
-            <Text style={styles.title}>Add Expense</Text>
-
-            <View style={styles.headerButton} />
-          </View>
-
-          <Text style={styles.label}>Amount</Text>
-
-          <TextInput
-            style={styles.amountInput}
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="0.00"
-            placeholderTextColor="#AAAAAA"
-            keyboardType="decimal-pad"
-          />
-
-          <Text style={styles.label}>Currency</Text>
-
-          <View style={styles.currencyRow}>
-            {CURRENCIES.map(item => {
-              const selected = currency === item;
-
-              return (
-                <Pressable
-                  key={item}
-                  style={[
-                    styles.currencyButton,
-                    selected && styles.currencyButtonSelected,
-                  ]}
-                  onPress={() => handleCurrencyChange(item)}
-                >
-                  <Text
-                    style={[
-                      styles.currencyText,
-                      selected && styles.currencyTextSelected,
-                    ]}
-                  >
-                    {item}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {currency !== 'MVR' && (
-            <>
-              <Text style={styles.label}>
-                Exchange Rate
-              </Text>
-
-              <View style={styles.card}>
-                <Text style={styles.exchangeDescription}>
-                  1 {currency} =
+              <View
+                style={
+                  styles.headerTextContainer
+                }
+              >
+                <Text style={styles.title}>
+                  Add Expense
                 </Text>
 
-                <View style={styles.exchangeInputRow}>
-                  <Text style={styles.exchangePrefix}>MVR</Text>
-
-                  <TextInput
-                    style={styles.exchangeInput}
-                    value={exchangeRate}
-                    onChangeText={setExchangeRate}
-                    placeholder="0.00"
-                    placeholderTextColor="#AAAAAA"
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-
-                <Text style={styles.helperText}>
-                  The rate used will be saved with this expense.
+                <Text style={styles.subtitle}>
+                  Record a transaction manually
                 </Text>
               </View>
-            </>
-          )}
 
-          <Text style={styles.label}>Merchant</Text>
+              <View
+                style={
+                  styles.headerPlaceholder
+                }
+              />
+            </View>
 
-          <TextInput
-            style={styles.textInput}
-            value={merchant}
-            onChangeText={setMerchant}
-            placeholder="e.g. SJ MALL"
-            placeholderTextColor="#AAAAAA"
-            autoCapitalize="words"
-          />
+            <Text style={styles.sectionTitle}>
+              Amount
+            </Text>
 
-          <Text style={styles.label}>Category</Text>
+            <View style={styles.amountCard}>
+              <Text style={styles.amountCurrency}>
+                {currency}
+              </Text>
 
-          <View style={styles.categoriesContainer}>
-            {expense.categories.map(category => {
-              const selected = categoryId === category.id;
+              <TextInput
+                style={styles.amountInput}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0.00"
+                placeholderTextColor="#B0B0B0"
+                keyboardType="decimal-pad"
+              />
+            </View>
 
-              return (
-                <Pressable
-                  key={category.id}
-                  style={[
-                    styles.categoryButton,
-                    selected && styles.categoryButtonSelected,
-                  ]}
-                  onPress={() => setCategoryId(category.id)}
+            <Text style={styles.fieldLabel}>
+              Currency
+            </Text>
+
+            <View style={styles.currencyRow}>
+              {CURRENCIES.map(item => {
+                const selected =
+                  currency === item;
+
+                return (
+                  <Pressable
+                    key={item}
+                    style={({ pressed }) => [
+                      styles.currencyButton,
+                      selected &&
+                        styles.currencyButtonSelected,
+                      pressed &&
+                        styles.buttonPressed,
+                    ]}
+                    onPress={() =>
+                      handleCurrencyChange(
+                        item
+                      )
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.currencyText,
+                        selected &&
+                          styles.currencyTextSelected,
+                      ]}
+                    >
+                      {item}
+                    </Text>
+
+                    {selected && (
+                      <Ionicons
+                        name="checkmark"
+                        size={15}
+                        color="#FFFFFF"
+                      />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {currency !== 'MVR' && (
+              <View
+                style={
+                  styles.exchangeCard
+                }
+              >
+                <View
+                  style={
+                    styles.exchangeHeader
+                  }
                 >
                   <View
-                    style={[
-                      styles.categoryDot,
-                      {
-                        backgroundColor: category.color,
-                      },
-                    ]}
+                    style={
+                      styles.exchangeIcon
+                    }
+                  >
+                    <Ionicons
+                      name="swap-horizontal-outline"
+                      size={19}
+                      color="#555555"
+                    />
+                  </View>
+
+                  <View
+                    style={
+                      styles.exchangeHeaderText
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.exchangeTitle
+                      }
+                    >
+                      Exchange Rate
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.exchangeDescription
+                      }
+                    >
+                      Enter the MVR value
+                      used for this expense.
+                    </Text>
+                  </View>
+                </View>
+
+                <View
+                  style={
+                    styles.exchangeEquation
+                  }
+                >
+                  <Text
+                    style={
+                      styles.exchangeEquationText
+                    }
+                  >
+                    1 {currency}
+                  </Text>
+
+                  <Ionicons
+                    name="arrow-forward"
+                    size={17}
+                    color="#888888"
+                  />
+
+                  <View
+                    style={
+                      styles.exchangeInputContainer
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.exchangePrefix
+                      }
+                    >
+                      MVR
+                    </Text>
+
+                    <TextInput
+                      style={
+                        styles.exchangeInput
+                      }
+                      value={
+                        exchangeRate
+                      }
+                      onChangeText={
+                        setExchangeRate
+                      }
+                      placeholder="0.00"
+                      placeholderTextColor="#AAAAAA"
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={15}
+                    color="#888888"
                   />
 
                   <Text
-                    style={[
-                      styles.categoryButtonText,
-                      selected && styles.categoryButtonTextSelected,
-                    ]}
+                    style={
+                      styles.helperText
+                    }
                   >
-                    {category.name}
+                    This rate will be saved
+                    permanently with the
+                    expense.
                   </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                </View>
+              </View>
+            )}
 
-          <Text style={styles.label}>Transaction Date</Text>
-
-          <TextInput
-            style={styles.textInput}
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#AAAAAA"
-            keyboardType="numbers-and-punctuation"
-          />
-
-          <Text style={styles.dateHint}>
-            Format: YYYY-MM-DD
-          </Text>
-
-          <Pressable
-            style={[
-              styles.saveButton,
-              isSaving && styles.saveButtonDisabled,
-            ]}
-            onPress={handleSave}
-            disabled={isSaving}
-          >
-            <Text style={styles.saveButtonText}>
-              {isSaving ? 'Saving...' : 'Save Expense'}
+            <Text style={styles.sectionTitle}>
+              Expense Details
             </Text>
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-});
+
+            <View style={styles.formCard}>
+              <Text style={styles.fieldLabel}>
+                Merchant
+              </Text>
+
+              <View style={styles.inputRow}>
+                <Ionicons
+                  name="storefront-outline"
+                  size={19}
+                  color="#888888"
+                />
+
+                <TextInput
+                  style={styles.textInput}
+                  value={merchant}
+                  onChangeText={setMerchant}
+                  placeholder="e.g. SJ MALL"
+                  placeholderTextColor="#AAAAAA"
+                  autoCapitalize="words"
+                />
+              </View>
+
+              <View style={styles.formDivider} />
+
+              <Text style={styles.fieldLabel}>
+                Transaction Date
+              </Text>
+
+              <View style={styles.inputRow}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={19}
+                  color="#888888"
+                />
+
+                <TextInput
+                  style={styles.textInput}
+                  value={date}
+                  onChangeText={setDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#AAAAAA"
+                  keyboardType="numbers-and-punctuation"
+                />
+              </View>
+
+              <Text style={styles.dateHint}>
+                Format: YYYY-MM-DD
+              </Text>
+            </View>
+
+            <Text style={styles.sectionTitle}>
+              Category
+            </Text>
+
+            <Text
+              style={styles.sectionDescription}
+            >
+              Choose how this expense should
+              be grouped.
+            </Text>
+
+            <View
+              style={
+                styles.categoriesContainer
+              }
+            >
+              {expense.categories.map(
+                category => {
+                  const selected =
+                    categoryId ===
+                    category.id;
+
+                  return (
+                    <Pressable
+                      key={category.id}
+                      style={({ pressed }) => [
+                        styles.categoryButton,
+                        selected &&
+                          styles.categoryButtonSelected,
+                        pressed &&
+                          styles.buttonPressed,
+                      ]}
+                      onPress={() =>
+                        setCategoryId(
+                          category.id
+                        )
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.categoryDot,
+                          {
+                            backgroundColor:
+                              category.color,
+                          },
+                        ]}
+                      />
+
+                      <Text
+                        style={[
+                          styles.categoryButtonText,
+                          selected &&
+                            styles.categoryButtonTextSelected,
+                        ]}
+                      >
+                        {category.name}
+                      </Text>
+
+                      {selected && (
+                        <Ionicons
+                          name="checkmark"
+                          size={14}
+                          color="#FFFFFF"
+                        />
+                      )}
+                    </Pressable>
+                  );
+                }
+              )}
+            </View>
+
+            <Pressable
+              style={[
+                styles.saveButton,
+                isSaving &&
+                  styles.saveButtonDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={isSaving}
+            >
+              <Ionicons
+                name={
+                  isSaving
+                    ? 'hourglass-outline'
+                    : 'checkmark-circle-outline'
+                }
+                size={20}
+                color="#FFFFFF"
+              />
+
+              <Text
+                style={
+                  styles.saveButtonText
+                }
+              >
+                {isSaving
+                  ? 'Saving...'
+                  : 'Save Expense'}
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -362,65 +637,102 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 28,
   },
 
-  headerButton: {
-    width: 60,
+  closeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EEEEEE',
   },
 
-  cancelText: {
-    color: '#007AFF',
-    fontSize: 16,
+  headerTextContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  headerPlaceholder: {
+    width: 40,
   },
 
   title: {
     color: '#111111',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
   },
 
-  label: {
-    marginTop: 18,
+  subtitle: {
+    marginTop: 3,
+    color: '#888888',
+    fontSize: 11,
+  },
+
+  sectionTitle: {
     marginBottom: 8,
-    color: '#333333',
-    fontSize: 14,
+    color: '#111111',
+    fontSize: 19,
+    fontWeight: '700',
+  },
+
+  sectionDescription: {
+    marginTop: -2,
+    marginBottom: 12,
+    color: '#888888',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  fieldLabel: {
+    marginBottom: 8,
+    color: '#444444',
+    fontSize: 12,
     fontWeight: '600',
   },
 
-  amountInput: {
-    borderRadius: 16,
+  amountCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 18,
-    paddingVertical: 18,
-    color: '#111111',
-    fontSize: 30,
+    paddingVertical: 16,
+  },
+
+  amountCurrency: {
+    marginRight: 11,
+    color: '#888888',
+    fontSize: 15,
     fontWeight: '700',
   },
 
-  textInput: {
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+  amountInput: {
+    flex: 1,
+    padding: 0,
     color: '#111111',
-    fontSize: 16,
+    fontSize: 32,
+    fontWeight: '700',
   },
 
   currencyRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 9,
+    marginBottom: 28,
   },
 
   currencyButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 46,
     borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 13,
     backgroundColor: '#FFFFFF',
-    paddingVertical: 13,
   },
 
   currencyButtonSelected: {
@@ -430,58 +742,148 @@ const styles = StyleSheet.create({
 
   currencyText: {
     color: '#555555',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
 
   currencyTextSelected: {
+    marginRight: 5,
     color: '#FFFFFF',
   },
 
-  card: {
-    borderRadius: 14,
+  exchangeCard: {
+    marginTop: -10,
+    marginBottom: 28,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
-    padding: 16,
+    padding: 18,
+  },
+
+  exchangeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  exchangeIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    marginRight: 11,
+    borderRadius: 12,
+    backgroundColor: '#F2F2F2',
+  },
+
+  exchangeHeaderText: {
+    flex: 1,
+  },
+
+  exchangeTitle: {
+    color: '#222222',
+    fontSize: 14,
+    fontWeight: '700',
   },
 
   exchangeDescription: {
-    marginBottom: 10,
-    color: '#555555',
-    fontSize: 14,
+    marginTop: 3,
+    color: '#888888',
+    fontSize: 11,
   },
 
-  exchangeInputRow: {
+  exchangeEquation: {
     flexDirection: 'row',
     alignItems: 'center',
   },
 
-  exchangePrefix: {
+  exchangeEquationText: {
     marginRight: 10,
-    color: '#222222',
-    fontSize: 18,
+    color: '#444444',
+    fontSize: 14,
     fontWeight: '600',
+  },
+
+  exchangeInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 11,
+    backgroundColor: '#FAFAFA',
+    paddingHorizontal: 12,
+  },
+
+  exchangePrefix: {
+    marginRight: 8,
+    color: '#777777',
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   exchangeInput: {
     flex: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDDDDD',
-    paddingVertical: 8,
+    paddingVertical: 11,
     color: '#111111',
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: '600',
   },
 
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+
   helperText: {
-    marginTop: 10,
+    flex: 1,
+    marginLeft: 6,
     color: '#888888',
-    fontSize: 12,
+    fontSize: 10,
+    lineHeight: 15,
+  },
+
+  formCard: {
+    marginBottom: 28,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    padding: 18,
+  },
+
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E4E4E4',
+    borderRadius: 12,
+    backgroundColor: '#FAFAFA',
+    paddingHorizontal: 13,
+  },
+
+  textInput: {
+    flex: 1,
+    marginLeft: 10,
+    paddingVertical: 13,
+    color: '#111111',
+    fontSize: 14,
+  },
+
+  formDivider: {
+    height: 18,
+  },
+
+  dateHint: {
+    marginTop: 6,
+    color: '#999999',
+    fontSize: 10,
   },
 
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 30,
   },
 
   categoryButton: {
@@ -491,8 +893,8 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 13,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
 
   categoryButtonSelected: {
@@ -509,36 +911,36 @@ const styles = StyleSheet.create({
 
   categoryButtonText: {
     color: '#444444',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
   },
 
   categoryButtonTextSelected: {
+    marginRight: 4,
     color: '#FFFFFF',
-  },
-
-  dateHint: {
-    marginTop: 6,
-    color: '#999999',
-    fontSize: 12,
   },
 
   saveButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 30,
     borderRadius: 16,
     backgroundColor: '#111111',
-    paddingVertical: 17,
+    paddingVertical: 16,
   },
 
   saveButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
 
   saveButtonText: {
+    marginLeft: 7,
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+  },
+
+  buttonPressed: {
+    opacity: 0.75,
   },
 });
